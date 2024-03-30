@@ -3,16 +3,16 @@ namespace StudentManagementSystem.Models;
 /// <summary>
 /// Represents a student.
 /// </summary>
-public class Student
+public class Student(int id, string firstName, string lastName, DateOnly dateOfBirth, float height)
 {
-    public int Id { get; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public DateTime DateOfBirth { get; set; }
-    public float Height { get; set; }
+    public int Id { get; } = id;
+    public string FirstName { get; set; } = firstName;
+    public string LastName { get; set; } = lastName;
+    public DateOnly DateOfBirth { get; set; } = dateOfBirth;
+    public float Height { get; set; } = height;
 
-    public Student(int id)
+    override public string ToString()
     {
-        Id = id;
+        return $"{FirstName} {LastName} (id {Id}): {DateOfBirth} ({Height}cm)";
     }
 }
