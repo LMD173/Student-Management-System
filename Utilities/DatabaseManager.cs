@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 using StudentManagementSystem.Models;
 
 /// <summary>
-/// Provides convenient methods for interacting with the database.
+/// Provides methods for interacting with the database.
 /// </summary>
 public class DatabaseManager
 {
@@ -16,8 +16,10 @@ public class DatabaseManager
 
     public DatabaseManager(string dbPath)
     {
-        if (!dbPath.EndsWith(".sqlite") || !dbPath.EndsWith(".db"))
-            throw new ArgumentException("The database path must end with `.sqlite` or `.db`.");
+        string[] validDbExtensions = [".sqlite", ".db", ".sqlite3"];
+
+        if (!validDbExtensions.Contains(Path.GetExtension(dbPath)))
+            throw new ArgumentException("The database path is invalid; must end with `.sqlite`, `.sqlite3` or `.db`.");
 
         _connectionString = $"Data Source={dbPath}";
     }
@@ -30,11 +32,11 @@ public class DatabaseManager
     {
         List<Student> students = [];
 
-        using var conn = new SqliteConnection(_connectionString);
-        conn.Open();
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
 
-        SqliteCommand command = conn.CreateCommand();
-        command.CommandText = @"SELECT * FROM Students";
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"SELECT * FROM Student";
 
         using var reader = command.ExecuteReader();
         while (reader.Read())
@@ -42,23 +44,48 @@ public class DatabaseManager
             int id = reader.GetInt32(0);
             string firstName = reader.GetString(1);
             string lastName = reader.GetString(2);
-            DateTime dateOfBirth = reader.GetDateTime(3);
-            float height = reader.GetFloat(4);
+            float height = reader.GetFloat(3);
 
-            Student student = new(id)
+            if (!DateOnly.TryParse(reader.GetString(4), out DateOnly dateOfBirth))
             {
-                FirstName = firstName,
-                LastName = lastName,
-                DateOfBirth = dateOfBirth,
-                Height = height
-            };
+                Logger.Error($"Failed to parse date of birth for student with ID {id}");
+                continue;
+            }
 
+            Student student = new(id, firstName, lastName, dateOfBirth, height);
             students.Add(student);
         }
 
         reader.Close();
-        conn.Close();
+        connection.Close();
 
         return students;
     }
+
+    /// <summary>
+    /// Logs a user into the system. If the user exists, returns a User object with the user's details.
+    /// </summary>
+    /// <param name="email">the user's email.</param>
+    /// <param name="password">the user's unhashed password.</param>
+    /// <param name="user">the User object to set.</param>
+    /// <returns>A User object if the user is valid.</returns>
+    public User? LogUserIn(string email, string password)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"SELECT id, email, role FROM User WHERE email = @email AND password = @password";
+        command.Parameters.AddWithValue("@email", email);
+        command.Parameters.AddWithValue("@password", Cryptography.Hash(password));
+
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            return new User(reader.GetInt32(0), reader.GetString(1), reader.GetString(2));
+        }
+
+        return null;
+    }
+
 }
