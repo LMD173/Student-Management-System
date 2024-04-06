@@ -17,7 +17,7 @@ public class Cryptography
         StringBuilder builder = new();
         for (int i = 0; i < bytes.Length; i++)
         {
-            builder.Append(bytes[i].ToString("x2")); // x2 formats the byte to a hexadecimal string.
+            builder.Append(bytes[i].ToString("x2")); // x2 formats the byte to a readable hexadecimal string.
         }
         return builder.ToString();
     }
