@@ -1,6 +1,5 @@
 ﻿namespace StudentManagementSystem;
 using StudentManagementSystem.Utilities;
-using StudentManagementSystem.Models;
 
 /// <summary>
 /// The main entry point for the student management system application.
