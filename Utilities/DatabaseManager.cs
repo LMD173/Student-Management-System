@@ -86,6 +86,50 @@ public class DatabaseManager
     }
 
     /// <summary>
+    /// Gets a student by their ID.
+    /// </summary>
+    /// <param name="id">The student's id.</param>
+    /// <returns>The student, or null if not found.</returns>
+    public Student? GetStudentById(int id)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"SELECT * FROM Student WHERE id = @id";
+        command.Parameters.AddWithValue("@id", id);
+
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            string firstName = reader.GetString(1);
+            string lastName = reader.GetString(2);
+            float height = reader.GetFloat(3);
+            DateOnly dateOfBirth = DateOnly.Parse(reader.GetString(4));
+
+            return new Student(id, firstName, lastName, dateOfBirth, height);
+        }
+
+        return null;
+    }
+
+    public bool UpdateStudent(Student student)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"UPDATE Student SET first_name = @firstName, last_name = @lastName, height = @height, date_of_birth = @dateOfBirth WHERE id = @id";
+        command.Parameters.AddWithValue("@id", student.Id);
+        command.Parameters.AddWithValue("@firstName", student.FirstName);
+        command.Parameters.AddWithValue("@lastName", student.LastName);
+        command.Parameters.AddWithValue("@height", student.Height);
+        command.Parameters.AddWithValue("@dateOfBirth", student.DateOfBirth.ToString());
+
+        return command.ExecuteNonQuery() > 0;
+    }
+
+    /// <summary>
     /// Logs a user into the system. If the user exists, returns a User object with the user's details.
     /// </summary>
     /// <param name="email">the user's email.</param>
