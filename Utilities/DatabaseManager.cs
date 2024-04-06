@@ -63,6 +63,29 @@ public class DatabaseManager
     }
 
     /// <summary>
+    /// Adds a student to the database.
+    /// </summary>
+    /// <param name="firstName">The student's first name.</param>
+    /// <param name="lastName">The student's last name.</param>
+    /// <param name="dateOfBirth">The student's date of birth.</param>
+    /// <param name="height">The student's height.</param>
+    /// <returns>Whether the student was successfully added.</returns>
+    public bool AddStudent(string firstName, string lastName, DateOnly dateOfBirth, float height)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"INSERT INTO Student (first_name, last_name, height, date_of_birth) VALUES (@firstName, @lastName, @height, @dateOfBirth)";
+        command.Parameters.AddWithValue("@firstName", firstName);
+        command.Parameters.AddWithValue("@lastName", lastName);
+        command.Parameters.AddWithValue("@height", height);
+        command.Parameters.AddWithValue("@dateOfBirth", dateOfBirth.ToString());
+
+        return command.ExecuteNonQuery() > 0;
+    }
+
+    /// <summary>
     /// Logs a user into the system. If the user exists, returns a User object with the user's details.
     /// </summary>
     /// <param name="email">the user's email.</param>
