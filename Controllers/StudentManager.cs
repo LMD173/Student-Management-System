@@ -270,13 +270,18 @@ public partial class StudentManager(DatabaseManager db)
             return null;
         }
 
+        static void WarnInvalid()
+        {
+            Logger.Error("Invalid input, please try again.");
+            Logger.Input("");
+        }
+
         while (true)
         {
             var input = Console.ReadLine();
             if (input is null || (input == "" && !acceptEmpty) || (typeof(T) == typeof(DateOnly) && !IsDateFormatted(input)))
             {
-                Logger.Error("Invalid input, please try again.");
-                Logger.Input("");
+                WarnInvalid();
             }
             else
             {
@@ -294,8 +299,7 @@ public partial class StudentManager(DatabaseManager db)
                     }
                     else
                     {
-                        Logger.Error("Invalid format, please try again.");
-                        Logger.Input("");
+                        WarnInvalid();
                     }
                 }
             }
