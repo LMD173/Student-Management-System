@@ -13,6 +13,6 @@ public class Student(int id, string firstName, string lastName, DateOnly dateOfB
 
     override public string ToString()
     {
-        return $"{FirstName} {LastName} (id {Id}): {DateOfBirth} ({Height}cm)";
+        return $"[{Id}] {FirstName} {LastName} - Born {DateOfBirth} - {Height}cm tall.";
     }
 }
