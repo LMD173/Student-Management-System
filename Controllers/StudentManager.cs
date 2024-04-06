@@ -1,13 +1,14 @@
+using System.Text.RegularExpressions;
 using StudentManagementSystem.Models;
 using StudentManagementSystem.Utilities;
 
 namespace StudentManagementSystem;
 
-public class StudentManager(DatabaseManager db)
+public partial class StudentManager(DatabaseManager db)
 {
     private User _user = null!; // null-forgiving operator because _user will never be null when it is used.
     private readonly DatabaseManager _db = db;
-    private int attempts = 0;
+    private int _attempts = 0;
 
     /// <summary>
     /// Initialises the student manager. Fatally stops execution if something
@@ -33,29 +34,48 @@ public class StudentManager(DatabaseManager db)
             switch (choice)
             {
                 case "1":
-                    AddStudentChoice();
+                    Console.Clear();
+                    ViewAllStudentsChoice();
                     break;
-                // case "2":
-                //     ViewStudents();
-                //     break;
-                // case "3":
-                //     ManageStudent();
-                //     break;
-                // case "4":
-                //     SearchStudent();
-                //     break;
+                case "2":
+                    Console.Clear();
+                    GetStudentDetailsChoice();
+                    break;
+                case "3":
+                    Console.Clear();
+                    if (_user.Role == "admin")
+                    {
+                        AddStudentChoice();
+                    }
+                    else
+                    {
+                        quit = true;
+                    }
+                    break;
+                case "4":
+                    Console.Clear();
+                    if (_user.Role == "admin")
+                    {
+                        ModifyStudentChoice();
+                    }
+                    else
+                    {
+                        Logger.Error("Invalid choice, please try again.");
+                    }
+                    break;
                 // case "5":
-                //     if (_user.Role == "admin")
-                //     {
-                //         ManageUsers();
-                //     }
-                //     else
-                //     {
-                //         quit = true;
-                //     }
-                //     break;
-                case "6":
-                    quit = true;
+                //     todo: implement
+                // case "6":
+                //     todo: implement
+                case "7":
+                    if (_user.Role == "admin")
+                    {
+                        quit = true;
+                    }
+                    else
+                    {
+                        Logger.Error("Invalid choice, please try again.");
+                    }
                     break;
                 default:
                     Logger.Error("Invalid choice, please try again.");
@@ -69,7 +89,7 @@ public class StudentManager(DatabaseManager db)
     private bool TryLogin(DatabaseManager databaseManager)
     {
         Logger.Info("Before you being, please login.");
-        while (attempts < 3)
+        while (_attempts < 3)
         {
             Logger.Input("Enter your email");
             string email = Console.ReadLine()!;
@@ -79,10 +99,10 @@ public class StudentManager(DatabaseManager db)
             var user = databaseManager.LogUserIn(email, password);
             if (user is null)
             {
-                attempts++;
+                _attempts++;
                 Console.Clear();
                 Logger.Error("Invalid email or password.");
-                Logger.Info($"You have {3 - attempts} attempt(s) remaining.");
+                Logger.Info($"You have {3 - _attempts} attempt(s) remaining.");
                 continue;
             }
 
@@ -96,8 +116,10 @@ public class StudentManager(DatabaseManager db)
     {
         Console.Clear();
         Logger.Info("Hello! Welcome to Student Management System.");
-        Logger.Info($"You are logged in as '{_user.Email}'.");
+        Logger.Info($"You are logged in as '{_user.Email}'.\n");
         Logger.Info("This is an application to manage students.");
+        Logger.Info("Admin users have additional options for manipulating student data.");
+        Logger.Info("Regular users only have read access.");
         Logger.Info("Please select an option from the menu to start.");
     }
 
@@ -109,23 +131,55 @@ public class StudentManager(DatabaseManager db)
 
     public void DisplayMenu()
     {
-        Logger.Log("-------- Menu --------");
-        Logger.Log("1. Add a new student");
-        Logger.Log("2. View all students");
-        Logger.Log("3. Select a student to manage");
-        Logger.Log("4. Search for a student");
+        Logger.Log("\n-------- Menu --------");
+        Logger.Log("1. View all students");
+        Logger.Log("2. Get a student's details");
 
         if (_user.Role == "admin")
         {
-            Logger.Log("5. Manage users");
-            Logger.Log("6. Exit");
+            Logger.Log("3. Add a new student");
+            Logger.Log("4. Modify a student's details");
+            Logger.Log("5. Delete a student");
+            Logger.Log("6. Manage users");
+            Logger.Log("7. Exit");
         }
         else
         {
-            Logger.Log("5. Exit");
+            Logger.Log("3. Exit");
         }
 
         Logger.Log("-----------------------");
+    }
+
+    private void ViewAllStudentsChoice()
+    {
+        var students = _db.GetAllStudents();
+        if (students.Count == 0)
+        {
+            Logger.Info("No students found.");
+        }
+        else
+        {
+            Logger.Log("==== Students ====");
+            students.ForEach(student => Logger.Log(student.ToString()));
+            Logger.Log("==================");
+        }
+    }
+
+    private void GetStudentDetailsChoice()
+    {
+        Logger.Input("Enter the student's ID");
+        int id = (int)ReadInputGeneric<int>()!;
+
+        var student = _db.GetStudentById(id);
+        if (student is null)
+        {
+            Logger.Error("Student not found.");
+        }
+        else
+        {
+            Logger.Log(student.ToString());
+        }
     }
 
     private void AddStudentChoice()
@@ -136,29 +190,63 @@ public class StudentManager(DatabaseManager db)
         Logger.Input("Enter the student's last name");
         string lastName = ReadInput();
 
-        Logger.Input("Enter the student's date of birth (yyyy-mm-dd)");
-        DateOnly dateOfBirth = ReadInputGeneric<DateOnly>();
+        Logger.Input("Enter the student's date of birth [DD/MM/YYYY]");
+        DateOnly dateOfBirth = (DateOnly)ReadInputGeneric<DateOnly>()!;
 
-        Logger.Input("Enter the student's height (in cm)");
-        float height = ReadInputGeneric<float>();
+        Logger.Input("Enter the student's height [in cm]");
+        float height = (float)ReadInputGeneric<float>()!;
 
         _db.AddStudent(firstName, lastName, dateOfBirth, height);
-        Logger.Info("Student added successfully.");
+        Logger.Success($"Student {firstName} {lastName} added successfully.");
     }
 
-    private static string ReadInput()
+    private void ModifyStudentChoice()
+    {
+        Logger.Input("Enter the student's ID");
+        int id = (int)ReadInputGeneric<int>()!;
+
+        var student = _db.GetStudentById(id);
+        if (student is null)
+        {
+            Logger.Error("Student not found.");
+            return;
+        }
+
+        Logger.Input("Enter the student's first name (leave empty to keep the current value)");
+        string firstName = ReadInput(true);
+        if (firstName == "")
+            firstName = student.FirstName;
+
+        Logger.Input("Enter the student's last name (leave empty to keep the current value)");
+        string lastName = ReadInput(true);
+        if (lastName == "")
+            lastName = student.LastName;
+
+        Logger.Input("Enter the student's date of birth [DD/MM/YYYY] (leave empty to keep the current value)");
+        DateOnly dateOfBirth = ReadInputGeneric<DateOnly>(true) ?? student.DateOfBirth;
+
+        Logger.Input("Enter the student's height [in cm] (leave empty to keep the current value)");
+        float height = ReadInputGeneric<float>(true) ?? student.Height;
+
+        Student newStudent = new(id, firstName, lastName, dateOfBirth, height);
+
+        _db.UpdateStudent(newStudent);
+        Logger.Success($"Student {firstName} {lastName} modified successfully.");
+    }
+
+    private static string ReadInput(bool acceptEmpty = false)
     {
         while (true)
         {
             var input = Console.ReadLine();
-            if (input == null || input == "")
+            if (input == null || (input == "" && !acceptEmpty))
             {
                 Logger.Error("Invalid input, please try again.");
                 Logger.Input("");
             }
             else
             {
-                return input.Trim();
+                return input == "" ? "" : input.Trim();
             }
         }
     }
@@ -168,29 +256,41 @@ public class StudentManager(DatabaseManager db)
     /// to invoke the TryParse method on the type. The type must have a conventional method
     /// signature of: `public static bool TryParse(string input, out T result)`.
     /// Partially generated by ChatGPT.
+    /// 
+    /// DateOnly is always checked for the format DD/MM/YYYY.
     /// </summary>
     /// <typeparam name="T">The type to attempt to parse the input into</typeparam>
     /// <returns>The input parsed into the type.</returns>
-    public static T ReadInputGeneric<T>() where T : struct // T must be a value type
+    public static T? ReadInputGeneric<T>(bool acceptEmpty = false) where T : struct // T must be a value type
     {
+        var tryParseMethod = typeof(T).GetMethod("TryParse", [typeof(string), typeof(T).MakeByRefType()]);
+        if (tryParseMethod is null)
+        {
+            Logger.Fatal("The type does not have a TryParse method.");
+            return null;
+        }
+
         while (true)
         {
             var input = Console.ReadLine();
-            if (string.IsNullOrEmpty(input))
+            if (input is null || (input == "" && !acceptEmpty) || (typeof(T) == typeof(DateOnly) && !IsDateFormatted(input)))
             {
                 Logger.Error("Invalid input, please try again.");
                 Logger.Input("");
             }
             else
             {
-                var tryParseMethod = typeof(T).GetMethod("TryParse", [typeof(string), typeof(T).MakeByRefType()]);
-                if (tryParseMethod != null)
+                var parameters = new object[] { input.Trim(), null! };
+                var success = (bool)(tryParseMethod.Invoke(null, parameters) ?? false);
+                if (success)
                 {
-                    var parameters = new object[] { input.Trim(), null! };
-                    var success = (bool)(tryParseMethod.Invoke(null, parameters) ?? false);
-                    if (success)
+                    return (T)parameters[1];
+                }
+                else
+                {
+                    if (acceptEmpty)
                     {
-                        return (T)parameters[1];
+                        return null;
                     }
                     else
                     {
@@ -198,12 +298,22 @@ public class StudentManager(DatabaseManager db)
                         Logger.Input("");
                     }
                 }
-                else
-                {
-                    Logger.Fatal("The type does not have a TryParse method.");
-                }
             }
         }
     }
 
+    private static bool IsDateFormatted(string input)
+    {
+        Regex dateRegex = DateFmtRegex();
+        return dateRegex.IsMatch(input);
+    }
+
+    /// <summary>
+    /// An auto-generated regex for date format DD/MM/YYYY
+    /// Regex pattern generated by ChatGPT.
+    /// </summary>
+    /// <returns></returns>
+    [GeneratedRegex(@"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[012])/\d{4}$"
+)]
+    private static partial Regex DateFmtRegex();
 }
