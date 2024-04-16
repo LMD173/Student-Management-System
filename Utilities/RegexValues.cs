@@ -28,6 +28,10 @@ public partial class RegexValues
     [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
     public static partial Regex EmailRegex();
 
+    /// <summary>
+    /// A regex pattern for a user's role.
+    /// </summary>
+    /// <returns></returns>
     [GeneratedRegex(@"user|admin")]
     public static partial Regex RoleRegex();
 }

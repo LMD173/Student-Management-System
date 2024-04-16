@@ -9,7 +9,7 @@ namespace StudentManagementSystem.Controllers;
 /// </summary>
 /// <param name="user">the user</param>
 /// <param name="db">the database instance</param>
-public class UserManager(User user, DatabaseManager db) : IRunner
+public class UserController(User user, DatabaseController db) : IRunner
 {
     public void Run()
     {

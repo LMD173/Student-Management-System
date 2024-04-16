@@ -24,7 +24,7 @@ public class Input
             var input = Console.ReadLine()?.Trim();
             if (input == "" && acceptEmpty) return "";
 
-            if (input == null || (regex != null && !Regex.IsMatch(input, regex)))
+            if (input is null || (regex is not null && !Regex.IsMatch(input, regex)))
             {
                 Logger.Error("Invalid input, please try again.");
                 Logger.Input("");
@@ -66,7 +66,7 @@ public class Input
         while (true)
         {
             var input = Console.ReadLine()?.Trim();
-            if (input is null || (input == "" && !acceptEmpty) || (regex != null && !Regex.IsMatch(input, regex)))
+            if (input is null || (input == "" && !acceptEmpty) || (regex is not null && !Regex.IsMatch(input, regex)))
             {
                 WarnInvalid();
             }

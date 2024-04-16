@@ -6,7 +6,8 @@ namespace StudentManagementSystem.Models;
 public interface IRunner
 {
     /// <summary>
-    /// Runs the main flow of the class.
+    /// Runs the main flow of the class. Typically starts execution of 
+    /// different functions based on user input.
     /// </summary>
     void Run();
 

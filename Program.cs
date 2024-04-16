@@ -3,20 +3,21 @@ using StudentManagementSystem.Controllers;
 
 namespace StudentManagementSystem;
 
-/// <summary>
-/// The main entry point for the student management system application.
-/// </summary>
 class Program
 {
+
+    /// <summary>
+    /// The entry point of the program.
+    /// </summary>
     static void Main()
     {
-        string? dbPath = Environment.GetEnvironmentVariable("SMS_DB_PATH");
+        string? dbPath = Environment.GetEnvironmentVariable("SMS_DB_PATH") ?? "./sms-data.db";
         if (string.IsNullOrEmpty(dbPath))
         {
             Logger.Fatal("The environment variable `SMS_DB_PATH` is not set or could not be found.");
         }
 
-        DatabaseManager db = null!;
+        DatabaseController db = null!;
         try
         {
             db = new(dbPath!);
@@ -26,10 +27,11 @@ class Program
             Logger.Fatal(e.Message);
         }
 
-        StudentManager studentManager = new(db!);
+        StudentController studentManager = new(db!);
         studentManager.Initialise();
         studentManager.Run();
     }
 }
 
 // a8dHA73*!&£aHA4@
+// 9Hdb&263*2bd9d5£
