@@ -1,7 +1,8 @@
-namespace StudentManagementSystem.Utilities;
-
 using Microsoft.Data.Sqlite;
 using StudentManagementSystem.Models;
+using StudentManagementSystem.Utilities;
+
+namespace StudentManagementSystem.Controllers;
 
 /// <summary>
 /// Provides methods for interacting with the database.
@@ -45,14 +46,10 @@ public class DatabaseManager
             string firstName = reader.GetString(1);
             string lastName = reader.GetString(2);
             float height = reader.GetFloat(3);
+            DateOnly dateOfBirth = DateOnly.Parse(reader.GetString(4));
+            string postcode = reader.GetString(5);
 
-            if (!DateOnly.TryParse(reader.GetString(4), out DateOnly dateOfBirth))
-            {
-                Logger.Error($"Failed to parse date of birth for student with ID {id}");
-                continue;
-            }
-
-            Student student = new(id, firstName, lastName, dateOfBirth, height);
+            Student student = new(id, firstName, lastName, dateOfBirth, height, postcode);
             students.Add(student);
         }
 
@@ -70,17 +67,18 @@ public class DatabaseManager
     /// <param name="dateOfBirth">The student's date of birth.</param>
     /// <param name="height">The student's height.</param>
     /// <returns>Whether the student was successfully added.</returns>
-    public bool AddStudent(string firstName, string lastName, DateOnly dateOfBirth, float height)
+    public bool AddStudent(string firstName, string lastName, DateOnly dateOfBirth, float height, string postcode)
     {
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
         SqliteCommand command = connection.CreateCommand();
-        command.CommandText = @"INSERT INTO Student (first_name, last_name, height, date_of_birth) VALUES (@firstName, @lastName, @height, @dateOfBirth)";
+        command.CommandText = @"INSERT INTO Student (first_name, last_name, height, date_of_birth, postcode) VALUES (@firstName, @lastName, @height, @dateOfBirth, @postcode)";
         command.Parameters.AddWithValue("@firstName", firstName);
         command.Parameters.AddWithValue("@lastName", lastName);
         command.Parameters.AddWithValue("@height", height);
         command.Parameters.AddWithValue("@dateOfBirth", dateOfBirth.ToString());
+        command.Parameters.AddWithValue("@postcode", postcode);
 
         bool result = command.ExecuteNonQuery() > 0;
         connection.Close();
@@ -109,8 +107,9 @@ public class DatabaseManager
             string lastName = reader.GetString(2);
             float height = reader.GetFloat(3);
             DateOnly dateOfBirth = DateOnly.Parse(reader.GetString(4));
+            string postcode = reader.GetString(5);
 
-            student = new Student(id, firstName, lastName, dateOfBirth, height);
+            student = new Student(id, firstName, lastName, dateOfBirth, height, postcode);
         }
 
         reader.Close();
@@ -124,12 +123,13 @@ public class DatabaseManager
         connection.Open();
 
         SqliteCommand command = connection.CreateCommand();
-        command.CommandText = @"UPDATE Student SET first_name = @firstName, last_name = @lastName, height = @height, date_of_birth = @dateOfBirth WHERE id = @id";
+        command.CommandText = @"UPDATE Student SET first_name = @firstName, last_name = @lastName, height = @height, date_of_birth = @dateOfBirth, postcode = @postcode WHERE id = @id";
         command.Parameters.AddWithValue("@id", student.Id);
         command.Parameters.AddWithValue("@firstName", student.FirstName);
         command.Parameters.AddWithValue("@lastName", student.LastName);
         command.Parameters.AddWithValue("@height", student.Height);
         command.Parameters.AddWithValue("@dateOfBirth", student.DateOfBirth.ToString());
+        command.Parameters.AddWithValue("@postcode", student.Postcode);
 
         bool result = command.ExecuteNonQuery() > 0;
         connection.Close();
@@ -179,4 +179,123 @@ public class DatabaseManager
         return result;
     }
 
+    public List<Student> SearchForStudentsByNameOrPostcode(string? name, string? postcode)
+    {
+        List<Student> students = [];
+
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"SELECT * FROM Student WHERE first_name LIKE @name OR last_name LIKE @name";
+        command.Parameters.AddWithValue("@name", $"%{name}%"); // in SQLite, % is a wildcard character which, in this case, matches any characters either side of the name
+        command.Parameters.AddWithValue("@postcode", postcode);
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            int id = reader.GetInt32(0);
+            string firstName = reader.GetString(1);
+            string lastName = reader.GetString(2);
+            float height = reader.GetFloat(3);
+            DateOnly dateOfBirth = DateOnly.Parse(reader.GetString(4));
+            string studentPostcode = reader.GetString(5);
+
+            Student student = new(id, firstName, lastName, dateOfBirth, height, studentPostcode);
+            students.Add(student);
+        }
+
+        reader.Close();
+        connection.Close();
+
+        return students;
+    }
+
+    public List<User> GetAllUsers()
+    {
+        List<User> users = [];
+
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"SELECT * FROM User";
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            int id = reader.GetInt32(0);
+            string email = reader.GetString(1);
+            string role = reader.GetString(3);
+
+            User user = new(id, email, role);
+            users.Add(user);
+        }
+
+        reader.Close();
+        connection.Close();
+
+        return users;
+    }
+
+    /// <summary>
+    /// Updates a user's details in the database.
+    /// </summary>
+    /// <param name="id">The user's id</param>
+    /// <param name="email">The user's (new) email</param>
+    /// <param name="password">The user's (new) unhashed password</param>
+    /// <returns></returns>
+    public bool UpdateUser(int id, string email, string? password)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+
+        if (password == null)
+        {
+            command.CommandText = @"UPDATE User SET email = @email WHERE id = @id";
+        }
+        else
+        {
+            command.CommandText = @"UPDATE User SET email = @email, password = @password WHERE id = @id";
+            command.Parameters.AddWithValue("@password", password == null ? null : Cryptography.Hash(password));
+        }
+        command.Parameters.AddWithValue("@id", id);
+        command.Parameters.AddWithValue("@email", email);
+
+        bool result = command.ExecuteNonQuery() > 0;
+        connection.Close();
+        return result;
+    }
+
+    public bool AddUser(string email, string password, string role)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"INSERT INTO User (email, password, role) VALUES (@email, @password, @role)";
+        command.Parameters.AddWithValue("@email", email);
+        command.Parameters.AddWithValue("@password", Cryptography.Hash(password));
+        command.Parameters.AddWithValue("@role", role);
+
+        bool result = command.ExecuteNonQuery() > 0;
+        connection.Close();
+        return result;
+    }
+
+    public bool DeleteUser(int id)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"DELETE FROM User WHERE id = @id";
+        command.Parameters.AddWithValue("@id", id);
+
+        bool result = command.ExecuteNonQuery() > 0;
+        connection.Close();
+        return result;
+    }
 }

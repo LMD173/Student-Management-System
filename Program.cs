@@ -1,5 +1,7 @@
-﻿namespace StudentManagementSystem;
-using StudentManagementSystem.Utilities;
+﻿using StudentManagementSystem.Utilities;
+using StudentManagementSystem.Controllers;
+
+namespace StudentManagementSystem;
 
 /// <summary>
 /// The main entry point for the student management system application.

@@ -5,7 +5,7 @@ namespace StudentManagementSystem.Models;
 /// </summary>
 public class User(int id, string email, string role)
 {
-    int Id { get; } = id;
+    public int Id { get; } = id;
     public string Email { get; set; } = email;
     public string Role { get; set; } = role;
 

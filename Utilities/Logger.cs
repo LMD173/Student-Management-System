@@ -1,7 +1,12 @@
 namespace StudentManagementSystem.Utilities;
 
+/// <summary>
+/// A utility class for logging messages to the console.
+/// </summary>
 public class Logger
 {
+
+    private Logger() { }
 
     /// <summary>
     /// Logs an input message.
