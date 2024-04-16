@@ -82,7 +82,9 @@ public class DatabaseManager
         command.Parameters.AddWithValue("@height", height);
         command.Parameters.AddWithValue("@dateOfBirth", dateOfBirth.ToString());
 
-        return command.ExecuteNonQuery() > 0;
+        bool result = command.ExecuteNonQuery() > 0;
+        connection.Close();
+        return result;
     }
 
     /// <summary>
@@ -100,6 +102,7 @@ public class DatabaseManager
         command.Parameters.AddWithValue("@id", id);
 
         using var reader = command.ExecuteReader();
+        Student? student = null;
         if (reader.Read())
         {
             string firstName = reader.GetString(1);
@@ -107,10 +110,12 @@ public class DatabaseManager
             float height = reader.GetFloat(3);
             DateOnly dateOfBirth = DateOnly.Parse(reader.GetString(4));
 
-            return new Student(id, firstName, lastName, dateOfBirth, height);
+            student = new Student(id, firstName, lastName, dateOfBirth, height);
         }
 
-        return null;
+        reader.Close();
+        connection.Close();
+        return student;
     }
 
     public bool UpdateStudent(Student student)
@@ -126,7 +131,9 @@ public class DatabaseManager
         command.Parameters.AddWithValue("@height", student.Height);
         command.Parameters.AddWithValue("@dateOfBirth", student.DateOfBirth.ToString());
 
-        return command.ExecuteNonQuery() > 0;
+        bool result = command.ExecuteNonQuery() > 0;
+        connection.Close();
+        return result;
     }
 
     /// <summary>
@@ -147,12 +154,29 @@ public class DatabaseManager
         command.Parameters.AddWithValue("@password", Cryptography.Hash(password));
 
         using var reader = command.ExecuteReader();
+        User? user = null;
         if (reader.Read())
         {
-            return new User(reader.GetInt32(0), reader.GetString(1), reader.GetString(2));
+            user = new User(reader.GetInt32(0), reader.GetString(1), reader.GetString(2));
         }
 
-        return null;
+        reader.Close();
+        connection.Close();
+        return user;
+    }
+
+    public bool DeleteStudent(int id)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = @"DELETE FROM Student WHERE id = @id";
+        command.Parameters.AddWithValue("@id", id);
+
+        bool result = command.ExecuteNonQuery() > 0;
+        connection.Close();
+        return result;
     }
 
 }
