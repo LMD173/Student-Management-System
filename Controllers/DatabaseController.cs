@@ -37,7 +37,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"SELECT * FROM Student";
 
         using var reader = command.ExecuteReader();
@@ -76,7 +76,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"INSERT INTO Student (first_name, last_name, height, date_of_birth, postcode) VALUES (@firstName, @lastName, @height, @dateOfBirth, @postcode)";
         command.Parameters.AddWithValue("@firstName", firstName);
         command.Parameters.AddWithValue("@lastName", lastName);
@@ -101,7 +101,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"SELECT * FROM Student WHERE id = @id";
         command.Parameters.AddWithValue("@id", id);
 
@@ -135,7 +135,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"UPDATE Student SET first_name = @firstName, last_name = @lastName, height = @height, date_of_birth = @dateOfBirth, postcode = @postcode WHERE id = @id";
         command.Parameters.AddWithValue("@id", student.Id);
         command.Parameters.AddWithValue("@firstName", student.FirstName);
@@ -150,33 +150,58 @@ public class DatabaseController
     }
 
     /// <summary>
-    /// Gets a user by their email and password.
+    /// Gets a user by their email. Checks for password validity.
     /// </summary>
     /// 
     /// <param name="email">The user's email.</param>
     /// <param name="password">The user's unhashed password.</param>
     /// 
     /// <returns>A User object if the user is valid.</returns>
+    /// //TODO: get salt from db to verify password
     public User? GetUser(string email, string password)
     {
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
         var command = connection.CreateCommand();
-        command.CommandText = @"SELECT id, email, role FROM User WHERE email = @email AND password = @password";
+        command.CommandText = @"SELECT * FROM User WHERE email = @email";
         command.Parameters.AddWithValue("@email", email);
-        command.Parameters.AddWithValue("@password", Cryptography.Hash(password));
 
         using var reader = command.ExecuteReader();
         User? user = null;
         if (reader.Read())
         {
-            user = new User(reader.GetInt32(0), reader.GetString(1), reader.GetString(2));
+            string pw = reader.GetString(2);
+            if (Cryptography.Verify(reader.GetInt32(0).ToString(), pw, password))
+            {
+                user = new User(reader.GetInt32(0), reader.GetString(1), reader.GetString(3));
+            }
         }
 
         reader.Close();
         connection.Close();
         return user;
+    }
+
+    /// <summary>
+    /// Checks if a user exists in the database given their email.
+    /// </summary>
+    /// 
+    /// <param name="email">The user's email.</param>
+    /// 
+    /// <returns>Whether the user exists.</returns>
+    public bool UserExists(string email)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"SELECT COUNT(*) FROM User WHERE email = @email";
+        command.Parameters.AddWithValue("@email", email);
+
+        var result = command.ExecuteScalar();
+        connection.Close();
+        return (long)result! > 0;
     }
 
     /// <summary>
@@ -191,7 +216,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"DELETE FROM Student WHERE id = @id";
         command.Parameters.AddWithValue("@id", id);
 
@@ -216,7 +241,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"SELECT * FROM Student WHERE first_name LIKE @name OR last_name LIKE @name";
         command.Parameters.AddWithValue("@name", $"%{name}%"); // in SQLite, % is a wildcard character which, in this case, matches any characters either side of the name
         command.Parameters.AddWithValue("@postcode", postcode);
@@ -253,7 +278,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"SELECT * FROM User";
 
         using var reader = command.ExecuteReader();
@@ -278,28 +303,40 @@ public class DatabaseController
     /// </summary>
     /// 
     /// <param name="id">The user's id</param>
-    /// <param name="email">The user's (new) email</param>
-    /// <param name="password">The user's (new) unhashed password</param>
+    /// <param name="newEmail">The user's new email</param>
+    /// <param name="newPassword">The user's new unhashed password</param>
     /// 
     /// <returns>Whether the user was updated.</returns>
-    public bool UpdateUser(int id, string email, string? password)
+    public bool UpdateUser(int id, string? newEmail, string? newPassword)
     {
+        if (newEmail is null && newPassword is null)
+            return false;
+
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
+        List<string> commands = [];
 
-        if (password is null)
+        if (newEmail is not null)
         {
-            command.CommandText = @"UPDATE User SET email = @email WHERE id = @id";
+            commands.Add("email = @newEmail");
+            command.Parameters.AddWithValue("@newEmail", newEmail);
         }
-        else
+
+        if (newPassword is not null)
         {
-            command.CommandText = @"UPDATE User SET email = @email, password = @password WHERE id = @id";
-            command.Parameters.AddWithValue("@password", password is null ? null : Cryptography.Hash(password));
+            string salt = Cryptography.GenerateSalt();
+
+            commands.Add("password = @password");
+            commands.Add("salt = @salt");
+
+            command.Parameters.AddWithValue("@password", Cryptography.Hash(newPassword, salt));
+            command.Parameters.AddWithValue("@salt", salt);
         }
+
         command.Parameters.AddWithValue("@id", id);
-        command.Parameters.AddWithValue("@email", email);
+        command.CommandText = $"UPDATE User SET {string.Join(", ", commands)} WHERE id = @id";
 
         bool result = command.ExecuteNonQuery() > 0;
         connection.Close();
@@ -320,10 +357,10 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"INSERT INTO User (email, password, role) VALUES (@email, @password, @role)";
         command.Parameters.AddWithValue("@email", email);
-        command.Parameters.AddWithValue("@password", Cryptography.Hash(password));
+        command.Parameters.AddWithValue("@password", Cryptography.Hash(password, email));
         command.Parameters.AddWithValue("@role", role);
 
         bool result = command.ExecuteNonQuery() > 0;
@@ -343,7 +380,7 @@ public class DatabaseController
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
-        SqliteCommand command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = @"DELETE FROM User WHERE id = @id";
         command.Parameters.AddWithValue("@id", id);
 

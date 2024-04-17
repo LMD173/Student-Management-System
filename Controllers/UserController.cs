@@ -4,11 +4,13 @@ using StudentManagementSystem.Utilities;
 
 namespace StudentManagementSystem.Controllers;
 
+//TODO: use enum like in StudentController
 /// <summary>
 /// A user management wizard that allows users to view, update, add, and delete users depending on their role.
 /// </summary>
 /// <param name="user">the user</param>
 /// <param name="db">the database instance</param>
+///
 public class UserController(User user, DatabaseController db) : IRunner
 {
     public void Run()
@@ -141,20 +143,27 @@ public class UserController(User user, DatabaseController db) : IRunner
     private void UpdateUserDetails(int id)
     {
         Logger.Input("Enter your new email address (leave empty to keep the current value)");
-        string email = Input.ReadInput(true, regex: RegexValues.EmailRegex().ToString());
+        string? email = Input.ReadInput(true, regex: RegexValues.EmailRegex().ToString());
         if (email == "")
-            email = user.Email;
+            email = null;
 
         Logger.Input("Enter your new password (leave empty to keep the current value)");
         string? password = Input.ReadInput(true);
         if (password == "")
             password = null;
 
+        if (email is null && password is null)
+        {
+            Logger.Warning("No values provided, user details not updated.");
+            return;
+        }
+
         var updated = db.UpdateUser(id, email, password);
         if (updated)
         {
             Logger.Success("Details updated successfully.");
-            user.Email = email;
+            if (email is not null)
+                user.Email = email;
         }
         else
         {
@@ -179,6 +188,12 @@ public class UserController(User user, DatabaseController db) : IRunner
     {
         Logger.Input("Enter the email address of the new user");
         string email = Input.ReadInput(regex: RegexValues.EmailRegex().ToString());
+
+        if (db.UserExists(email))
+        {
+            Logger.Error("This user already exists.");
+            return;
+        }
 
         Logger.Input("Enter the role of the new user [user or admin]");
         string role = Input.ReadInput(regex: RegexValues.RoleRegex().ToString());

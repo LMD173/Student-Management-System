@@ -13,7 +13,7 @@ A console-based C# application which simulates a student management system.
 ### 1.2 Run
 
 1.  In the directory with the files, run `dotnet run` in your terminal. Alternatively, open an IDE/code editor and run the progrm.
-2.  You'll be asked for login details; the program gives you 3 security attempts before stopping (for demo purposes, you can re-run the program). There are 2 users pre-loaded in the database:
+2.  You'll be asked for login details; the program gives you 3 security attempts before stopping (for demo purposes, you can always re-run the program). There are 2 users pre-loaded in the database:
 
 | role  | email              | password           |
 | ----- | ------------------ | ------------------ |

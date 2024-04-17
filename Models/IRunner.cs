@@ -1,7 +1,7 @@
 namespace StudentManagementSystem.Models;
 
 /// <summary>
-/// Represents a class that can be run (provide actions for a user to take).
+/// Represents a menu class that can be run (provide actions for a user to take).
 /// </summary>
 public interface IRunner
 {

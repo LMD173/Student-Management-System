@@ -31,7 +31,6 @@ public partial class RegexValues
     /// <summary>
     /// A regex pattern for a user's role.
     /// </summary>
-    /// <returns></returns>
     [GeneratedRegex(@"user|admin")]
     public static partial Regex RoleRegex();
 }

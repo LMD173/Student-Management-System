@@ -5,27 +5,27 @@ using StudentManagementSystem.Utilities;
 namespace StudentManagementSystem.Controllers;
 
 /// <summary>
-/// Actions that a user can take.
-/// </summary>
-public enum StudentControllerMenuOptions
-{
-    ViewAllStudents = 1,
-    SearchStudentById = 2,
-    SearchStudentByNameOrPostcode = 3,
-    AddStudent = 4,
-    ModifyStudent = 5,
-    DeleteStudent = 6,
-    ManageUsers = 7,
-    Exit = 8
-}
-
-/// <summary>
 /// A student management wizard that allows users to view, update, add, and delete students depending on their role.
 /// </summary>
-/// <param name="db">the database instance.</param>
+/// <param name="db">The database instance.</param>
 public class StudentController(DatabaseController db) : IRunner
 {
     private User _user = null!; // null-forgiving operator because _user will never be null when it is used.
+
+    /// <summary>
+    /// Actions that a user can take.
+    /// </summary>
+    enum StudentControllerMenuOptions
+    {
+        ViewAllStudents = 1,
+        SearchStudentById = 2,
+        SearchStudentByNameOrPostcode = 3,
+        AddStudent = 4,
+        ModifyStudent = 5,
+        DeleteStudent = 6,
+        ManageUsers = 7,
+        Exit = 8
+    }
 
     /// <summary>
     /// Initialises the student manager. Fatally stops execution if the maximum number of login attempts is exceeded.
@@ -63,7 +63,7 @@ public class StudentController(DatabaseController db) : IRunner
                     SearchStudentByIdChoice();
                     break;
                 case StudentControllerMenuOptions.SearchStudentByNameOrPostcode:
-                    SearchStudentByNameOrPostcode();
+                    SearchStudentByNameOrPostcodeChoice();
                     break;
                 case StudentControllerMenuOptions.AddStudent:
                     PerformAdminAction(AddStudentChoice);
@@ -100,9 +100,6 @@ public class StudentController(DatabaseController db) : IRunner
             LogInvalidChoice();
     }
 
-    /// <summary>
-    /// Logs an invalid choice message.
-    /// </summary>
     private static void LogInvalidChoice()
     {
         Logger.Error("Invalid choice, please try again.");
@@ -144,7 +141,7 @@ public class StudentController(DatabaseController db) : IRunner
 
     public void Greet()
     {
-        Console.Clear();
+        // Console.Clear();
         Logger.Info("Hello! Welcome to Student Management System.");
         Logger.Info($"You are logged in as '{_user.Email}'.\n");
         Logger.Info("This is an application to manage students.");
@@ -153,9 +150,6 @@ public class StudentController(DatabaseController db) : IRunner
         Logger.Info("Please select an option from the menu to start.");
     }
 
-    /// <summary>
-    /// Says goodbye to the user.
-    /// </summary>
     private static void SayGoodbye()
     {
         Logger.Info("Goodbye! Thank you for using Student Management System.");
@@ -229,7 +223,7 @@ public class StudentController(DatabaseController db) : IRunner
     /// <summary>
     /// Gets user input to search for a student by name or postcode.
     /// </summary>
-    private void SearchStudentByNameOrPostcode()
+    private void SearchStudentByNameOrPostcodeChoice()
     {
         Logger.Log("==== Search for a student by name or postcode ====");
         Logger.Input("Enter the student's first name (leave empty to skip)");
@@ -241,7 +235,7 @@ public class StudentController(DatabaseController db) : IRunner
         Logger.Input("Enter the student's postcode (leave empty to skip)");
         string postcode = Input.ReadInput(true);
 
-        var students = db.SearchForStudentsByNameOrPostcode(string.Concat(firstName, lastName), postcode);
+        var students = db.SearchForStudentsByNameOrPostcode(string.Concat(firstName, " ", lastName), postcode);
         var count = students.Count;
         if (count == 0)
         {

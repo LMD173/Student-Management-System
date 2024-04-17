@@ -9,7 +9,6 @@ public class User(int id, string email, string role)
     public string Email { get; set; } = email;
     public string Role { get; set; } = role;
 
-
     override public string ToString()
     {
         return $"{Email} ({Id}): {Email} ({Role})";
