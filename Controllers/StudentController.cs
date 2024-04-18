@@ -8,13 +8,8 @@ namespace StudentManagementSystem.Controllers;
 /// A student management wizard that allows users to view, update, add, and delete students depending on their role.
 /// </summary>
 /// <param name="db">The database instance.</param>
-public class StudentController(DatabaseController db) : IRunner
+public class StudentController(User user, DatabaseController db) : IRunner
 {
-    private User _user = null!; // null-forgiving operator because _user will never be null when it is used.
-
-    /// <summary>
-    /// Actions that a user can take.
-    /// </summary>
     enum StudentControllerMenuOptions
     {
         ViewAllStudents = 1,
@@ -27,29 +22,17 @@ public class StudentController(DatabaseController db) : IRunner
         Exit = 8
     }
 
-    /// <summary>
-    /// Initialises the student manager. Fatally stops execution if the maximum number of login attempts is exceeded.
-    /// </summary>
-    public void Initialise()
-    {
-        if (!TryLogin(db))
-        {
-            Logger.Fatal("You have exceeded the maximum number of login attempts.");
-        }
-        Greet();
-    }
-
     public void Run()
     {
         bool quit = false;
+        Greet();
         while (!quit)
         {
             DisplayMenu();
-
-            Logger.Input("Enter your choice");
+            Logger.Input("Enter your choice (1-8)");
             if (!Enum.TryParse<StudentControllerMenuOptions>(Input.ReadInput().ToLower(), out var choice))
             {
-                LogInvalidChoice();
+                Logger.LogInvalidChoice();
                 continue;
             }
 
@@ -75,13 +58,13 @@ public class StudentController(DatabaseController db) : IRunner
                     PerformAdminAction(DeleteStudentChoice);
                     break;
                 case StudentControllerMenuOptions.ManageUsers:
-                    PerformAdminAction(() => new UserController(_user, db).Run());
+                    new UserController(user, db).Run();
                     break;
                 case StudentControllerMenuOptions.Exit:
                     quit = true;
                     break;
                 default:
-                    LogInvalidChoice();
+                    Logger.LogInvalidChoice();
                     break;
             }
         }
@@ -94,56 +77,17 @@ public class StudentController(DatabaseController db) : IRunner
     /// <param name="action">The action to perform (function to call)</param>
     private void PerformAdminAction(Action action)
     {
-        if (_user.Role == "admin")
+        if (user.Role == "admin")
             action();
         else
-            LogInvalidChoice();
-    }
-
-    private static void LogInvalidChoice()
-    {
-        Logger.Error("Invalid choice, please try again.");
-    }
-
-    /// <summary>
-    /// Tries to login the user. Returns true if the login is successful, false otherwise (after 3 attempts).
-    /// </summary>
-    /// 
-    /// <param name="databaseManager"></param>
-    /// 
-    /// <returns>Whether the login was successful.</returns>
-    private bool TryLogin(DatabaseController databaseManager)
-    {
-        Logger.Info("Before you begin, please login.");
-        int attempts = 0;
-        while (attempts < 3)
-        {
-            Logger.Input("Enter your email");
-            string email = Console.ReadLine()!.Trim();
-            Logger.Input("Enter your password");
-            string password = Console.ReadLine()!.Trim();
-
-            var user = databaseManager.GetUser(email, password);
-            if (user is null)
-            {
-                attempts++;
-                Console.Clear();
-                Logger.Error("Invalid email or password.");
-                Logger.Info($"You have {3 - attempts} attempt(s) remaining.");
-                continue;
-            }
-
-            _user = user;
-            return true;
-        }
-        return false;
+            Logger.LogInvalidChoice();
     }
 
     public void Greet()
     {
-        // Console.Clear();
+        Console.Clear();
         Logger.Info("Hello! Welcome to Student Management System.");
-        Logger.Info($"You are logged in as '{_user.Email}'.\n");
+        Logger.Info($"You are logged in as '{user.Email}'.\n");
         Logger.Info("This is an application to manage students.");
         Logger.Info("Admin users have additional options for manipulating student data.");
         Logger.Info("Regular users only have read access.");
@@ -157,12 +101,12 @@ public class StudentController(DatabaseController db) : IRunner
 
     public void DisplayMenu()
     {
-        Logger.Log("\n-------- Menu --------");
+        Logger.Log("\n-------- Student Menu --------");
         Logger.Log("1. View all students");
         Logger.Log("2. Search for a student by ID");
         Logger.Log("3. Search for a student by name or postcode");
 
-        if (_user.Role == "admin")
+        if (user.Role == "admin")
         {
             Logger.Log("4. Add a new student");
             Logger.Log("5. Modify a student's details");
@@ -174,11 +118,11 @@ public class StudentController(DatabaseController db) : IRunner
             Logger.Log("4. Add a new student", ConsoleColor.DarkGray);
             Logger.Log("5. Modify a student's details", ConsoleColor.DarkGray);
             Logger.Log("6. Delete a student", ConsoleColor.DarkGray);
-            Logger.Log("7. Manage users", ConsoleColor.DarkGray);
+            Logger.Log("7. Manage your account");
         }
 
         Logger.Log("8. Exit");
-        Logger.Log("-----------------------");
+        Logger.Log("-------------------------------");
     }
 
     /// <summary>
@@ -194,10 +138,27 @@ public class StudentController(DatabaseController db) : IRunner
         }
         else
         {
-            var table = ConsoleTable.From(students);
+            var table = TableFromStudents(students);
             Console.Clear();
             Logger.Log(table.ToString());
         }
+    }
+
+    /// <summary>
+    /// Creates a console table from a list of students.
+    /// </summary>
+    /// 
+    /// <param name="students">The list of students to display.</param>
+    /// 
+    /// <returns>The console table.</returns>
+    private static ConsoleTable TableFromStudents(List<Student> students)
+    {
+        var table = new ConsoleTable("ID", "First", "Last", "Date of Birth", "Email", "Phone", "Address", "Postcode");
+        foreach (var student in students)
+        {
+            table.AddRow(student.Id, student.FirstName, student.LastName, student.DateOfBirth.ToString("yyyy-MM-dd"), student.ContactEmail, student.ContactPhone, student.AddressLine, student.Postcode);
+        }
+        return table;
     }
 
     /// <summary>
@@ -225,7 +186,7 @@ public class StudentController(DatabaseController db) : IRunner
     /// </summary>
     private void SearchStudentByNameOrPostcodeChoice()
     {
-        Logger.Log("==== Search for a student by name or postcode ====");
+        Logger.Log("==== Search for a student by name or postcode as filters ====");
         Logger.Input("Enter the student's first name (leave empty to skip)");
         string firstName = Input.ReadInput(true);
 
@@ -235,7 +196,7 @@ public class StudentController(DatabaseController db) : IRunner
         Logger.Input("Enter the student's postcode (leave empty to skip)");
         string postcode = Input.ReadInput(true);
 
-        var students = db.SearchForStudentsByNameOrPostcode(string.Concat(firstName, " ", lastName), postcode);
+        var students = db.SearchForStudentsByNameOrPostcode(firstName, lastName, postcode);
         var count = students.Count;
         if (count == 0)
         {
@@ -243,7 +204,7 @@ public class StudentController(DatabaseController db) : IRunner
         }
         else
         {
-            var table = ConsoleTable.From(students);
+            var table = TableFromStudents(students);
             Console.Clear();
             Logger.Log(table.ToString());
         }
@@ -261,7 +222,7 @@ public class StudentController(DatabaseController db) : IRunner
         Logger.Input("Enter the student's last name");
         string lastName = Input.ReadInput();
 
-        Logger.Input("Enter the student's date of birth [DD/MM/YYYY]");
+        Logger.Input("Enter the student's date of birth [yyyy-mm-dd]");
         DateOnly dateOfBirth = (DateOnly)Input.ReadInputGeneric<DateOnly>(regex: RegexValues.DateFmtRegex().ToString())!;
 
         Logger.Input("Enter the student's height [in cm]");
@@ -270,7 +231,16 @@ public class StudentController(DatabaseController db) : IRunner
         Logger.Input("Enter the student's postcode");
         string postcode = Input.ReadInput(regex: RegexValues.PostcodeRegex().ToString());
 
-        db.AddStudent(firstName, lastName, dateOfBirth, height, postcode);
+        Logger.Input("Enter the student's address line");
+        string addressLine = Input.ReadInput();
+
+        Logger.Input("Enter the student's contact phone");
+        string contactPhone = Input.ReadInput(); // not using regex for phone number because there are too many possible variations
+
+        Logger.Input("Enter the student's contact email");
+        string contactEmail = Input.ReadInput(regex: RegexValues.EmailRegex().ToString());
+
+        db.AddStudent(new Student(0, firstName, lastName, dateOfBirth, height, postcode, addressLine, contactPhone, contactEmail));
         Logger.Success($"Student {firstName} {lastName} added successfully.");
     }
 
@@ -300,7 +270,7 @@ public class StudentController(DatabaseController db) : IRunner
         if (lastName == "")
             lastName = student.LastName;
 
-        Logger.Input("Enter the student's date of birth [DD/MM/YYYY] (leave empty to keep the current value)");
+        Logger.Input("Enter the student's date of birth [yyyy-mm-dd] (leave empty to keep the current value)");
         DateOnly dateOfBirth = Input.ReadInputGeneric<DateOnly>(true, RegexValues.DateFmtRegex().ToString()) ?? student.DateOfBirth;
 
         Logger.Input("Enter the student's height [in cm] (leave empty to keep the current value)");
@@ -311,7 +281,22 @@ public class StudentController(DatabaseController db) : IRunner
         if (postcode == "")
             postcode = student.Postcode;
 
-        Student newStudent = new(id, firstName, lastName, dateOfBirth, height, postcode);
+        Logger.Input("Enter the student's address line (leave empty to keep the current value)");
+        string addressLine = Input.ReadInput(true);
+        if (addressLine == "")
+            addressLine = student.AddressLine;
+
+        Logger.Input("Enter the student's contact phone (leave empty to keep the current value)");
+        string contactPhone = Input.ReadInput(true);
+        if (contactPhone == "")
+            contactPhone = student.ContactPhone;
+
+        Logger.Input("Enter the student's contact email (leave empty to keep the current value)");
+        string contactEmail = Input.ReadInput(true, regex: RegexValues.EmailRegex().ToString());
+        if (contactEmail == "")
+            contactEmail = student.ContactEmail;
+
+        Student newStudent = new(id, firstName, lastName, dateOfBirth, height, postcode, addressLine, contactPhone, contactEmail);
 
         var updated = db.UpdateStudent(newStudent);
         if (!updated)

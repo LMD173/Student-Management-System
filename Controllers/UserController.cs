@@ -4,15 +4,24 @@ using StudentManagementSystem.Utilities;
 
 namespace StudentManagementSystem.Controllers;
 
-//TODO: use enum like in StudentController
 /// <summary>
 /// A user management wizard that allows users to view, update, add, and delete users depending on their role.
 /// </summary>
-/// <param name="user">the user</param>
-/// <param name="db">the database instance</param>
-///
+/// 
+/// <param name="user">The current user.</param>
+/// <param name="db">The database instance.</param>
 public class UserController(User user, DatabaseController db) : IRunner
 {
+    enum UserOptions
+    {
+        ViewAllUsers = 1,
+        UpdateYourDetails = 2,
+        UpdateAnotherUserDetails = 3,
+        AddNewUser = 4,
+        DeleteUser = 5,
+        Exit = 6
+    }
+
     public void Run()
     {
         bool quit = false;
@@ -20,72 +29,56 @@ public class UserController(User user, DatabaseController db) : IRunner
         while (!quit)
         {
             DisplayMenu();
-            string? input = Console.ReadLine();
-            switch (input)
+            Logger.Input("Enter your choice (1-6)");
+            if (!Enum.TryParse<UserOptions>(Console.ReadLine(), out var choice))
             {
-                case "1":
-                    Console.Clear();
+                Logger.LogInvalidChoice();
+                continue;
+            }
+
+            Console.Clear();
+            switch (choice)
+            {
+                case UserOptions.ViewAllUsers:
                     ViewAllUsersChoice();
                     break;
-                case "2":
-                    Console.Clear();
+                case UserOptions.UpdateYourDetails:
                     UpdateUserDetails(user.Id);
                     break;
-                case "3":
-                    if (user.Role == "admin")
-                    {
-                        Console.Clear();
-                        UpdateAnotherUserChoice();
-                    }
-                    else
-                    {
-                        Logger.Info("Exiting...");
-                        quit = true;
-                    }
+                case UserOptions.UpdateAnotherUserDetails:
+                    PerformAdminAction(UpdateAnotherUserChoice);
                     break;
-                case "4":
-                    if (user.Role == "admin")
-                    {
-                        Console.Clear();
-                        AddUserChoice();
-                    }
-                    else
-                    {
-                        Logger.Error("Invalid option.");
-                    }
+                case UserOptions.AddNewUser:
+                    PerformAdminAction(AddUserChoice);
                     break;
-                case "5":
-                    if (user.Role == "admin")
-                    {
-                        Console.Clear();
-                        DeleteUserChoice();
-                    }
-                    else
-                    {
-                        Logger.Error("Invalid option.");
-                    }
+                case UserOptions.DeleteUser:
+                    PerformAdminAction(DeleteUserChoice);
                     break;
-                case "6":
-                    if (user.Role == "admin")
-                    {
-                        Logger.Info("Exiting...");
-                        quit = true;
-                    }
-                    else
-                    {
-                        Logger.Error("Invalid option.");
-                    }
+                case UserOptions.Exit:
+                    quit = true;
                     break;
                 default:
-                    Logger.Error("Invalid option.");
+                    Logger.LogInvalidChoice();
                     break;
             }
         }
     }
 
+    /// <summary>
+    /// Performs an admin action if the user is an admin.
+    /// </summary>
+    /// <param name="action">The action to perform (function to call)</param>
+    private void PerformAdminAction(Action action)
+    {
+        if (user.Role == "admin")
+            action();
+        else
+            Logger.LogInvalidChoice();
+    }
+
     public void DisplayMenu()
     {
-        Logger.Log("\n-------- Menu --------");
+        Logger.Log("\n-------- User Menu --------");
         Logger.Log("1. View all users");
         Logger.Log("2. Update your details");
         if (user.Role == "admin")
@@ -93,14 +86,16 @@ public class UserController(User user, DatabaseController db) : IRunner
             Logger.Log("3. Update another user's details");
             Logger.Log("4. Add a new user");
             Logger.Log("5. Delete a user");
-            Logger.Log("6. Exit");
+
         }
         else
         {
-            Logger.Log("3. Exit");
+            Logger.Log("3. Update another user's details", ConsoleColor.DarkGray);
+            Logger.Log("4. Add a new user", ConsoleColor.DarkGray);
+            Logger.Log("5. Delete a user", ConsoleColor.DarkGray);
         }
-
-        Logger.Log("----------------------");
+        Logger.Log("6. Exit");
+        Logger.Log("---------------------------");
     }
 
     public void Greet()
@@ -139,15 +134,16 @@ public class UserController(User user, DatabaseController db) : IRunner
     /// <summary>
     /// Gets input from the user to update a specific user's details.
     /// </summary>
-    /// <param name="id">the user ID.</param>
+    /// 
+    /// <param name="id">The user ID.</param>
     private void UpdateUserDetails(int id)
     {
-        Logger.Input("Enter your new email address (leave empty to keep the current value)");
+        Logger.Input("Enter the new email address (leave empty to keep the current value)");
         string? email = Input.ReadInput(true, regex: RegexValues.EmailRegex().ToString());
         if (email == "")
             email = null;
 
-        Logger.Input("Enter your new password (leave empty to keep the current value)");
+        Logger.Input("Enter the new password (leave empty to keep the current value)");
         string? password = Input.ReadInput(true);
         if (password == "")
             password = null;
@@ -176,7 +172,7 @@ public class UserController(User user, DatabaseController db) : IRunner
     /// </summary>
     private void UpdateAnotherUserChoice()
     {
-        Logger.Input("Enter the ID of the user to update:");
+        Logger.Input("Enter the ID of the user to update");
         int id = (int)Input.ReadInputGeneric<int>()!;
         UpdateUserDetails(id);
     }

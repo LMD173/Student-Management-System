@@ -11,6 +11,7 @@ public class Logger
     /// <summary>
     /// Logs an input message.
     /// </summary>
+    /// 
     /// <param name="message">the input message to output.</param>
     /// <param name="newLine">whether to add a new line after the message.</param>
     public static void Input(string message, bool newLine = false)
@@ -21,6 +22,7 @@ public class Logger
     /// <summary>
     /// Logs an informational message.
     /// </summary>
+    /// 
     /// <param name="message">the message to output.</param>
     /// <param name="newLine">whether to add a new line after the message.</param>
     public static void Info(string message, bool newLine = true)
@@ -31,6 +33,7 @@ public class Logger
     /// <summary>
     /// Logs an error message.
     /// </summary>
+    /// 
     /// <param name="message">the error message to output.</param>
     /// <param name="newLine">whether to add a new line after the message.</param>
     public static void Error(string message, bool newLine = true)
@@ -41,6 +44,7 @@ public class Logger
     /// <summary>
     /// Logs a success message.
     /// </summary>
+    /// 
     /// <param name="message">the success message to output.</param>
     /// <param name="newLine">whether to add a new line after the message.</param>
     public static void Success(string message, bool newLine = true)
@@ -51,6 +55,7 @@ public class Logger
     /// <summary>
     /// Logs a warning message.
     /// </summary>
+    /// 
     /// <param name="message">the warning message to output.</param>
     /// <param name="newLine">whether to add a new line after the message.</param>
     public static void Warning(string message, bool newLine = true)
@@ -61,6 +66,7 @@ public class Logger
     /// <summary>
     /// Logs a fatal error and exits the application.
     /// </summary>
+    /// 
     /// <param name="message">the error message to output.</param>
     /// <param name="code">an optional code to exit the environment with.</param>
     public static void Fatal(string message, int code = 1)
@@ -72,6 +78,7 @@ public class Logger
     /// <summary>
     /// Logs a message to the console.
     /// </summary>
+    /// 
     /// <param name="message">the message to log to the console.</param>
     /// <param name="color">the console colour to use.</param>
     /// <param name="newLine">whether to add a new line after the message.</param>
@@ -87,5 +94,13 @@ public class Logger
             Console.Write(message);
         }
         Console.ResetColor();
+    }
+
+    /// <summary>
+    /// Logs an invalid choice error message.
+    /// </summary>
+    public static void LogInvalidChoice()
+    {
+        Error("Invalid choice, please try again.");
     }
 }

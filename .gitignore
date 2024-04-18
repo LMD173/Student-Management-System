@@ -39,3 +39,5 @@ artifacts/
 # StyleCop
 StyleCopReport.xml
 ~$troduction.docx
+
+*.docx

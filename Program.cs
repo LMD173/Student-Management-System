@@ -1,5 +1,7 @@
 ﻿using StudentManagementSystem.Utilities;
 using StudentManagementSystem.Controllers;
+using StudentManagementSystem.Models;
+using System.Globalization;
 
 namespace StudentManagementSystem;
 
@@ -28,11 +30,47 @@ class Program
             Logger.Fatal(e.Message);
         }
 
-        StudentController studentManager = new(db);
-        studentManager.Initialise();
+        User? user = TryLogin(db);
+        if (user is null)
+        {
+            Logger.Fatal("You have exceeded the maximum number of attempts (3). Exiting...");
+            return;
+        }
+
+        StudentController studentManager = new(user, db);
         studentManager.Run();
     }
-}
 
-// a8dHA73*!&£aHA4@
-// 9Hdb&263*2bd9d5£
+    /// <summary>
+    /// Tries to login the user. Returns the user if the login is successful, null otherwise (after 3 attempts).
+    /// </summary>
+    /// 
+    /// <param name="databaseManager"></param>
+    /// 
+    /// <returns>The user object, or null.</returns>
+    private static User? TryLogin(DatabaseController databaseManager)
+    {
+        Logger.Info("Before you begin, please login.");
+        int attempts = 0;
+        while (attempts < 3)
+        {
+            Logger.Input("Enter your email");
+            string email = Console.ReadLine()!.Trim();
+            Logger.Input("Enter your password");
+            string password = Console.ReadLine()!.Trim();
+
+            var user = databaseManager.GetUser(email, password);
+            if (user is null)
+            {
+                attempts++;
+                Console.Clear();
+                Logger.Error("Invalid email or password.");
+                Logger.Info($"You have {3 - attempts} attempt(s) remaining.");
+                continue;
+            }
+
+            return user;
+        }
+        return null;
+    }
+}
