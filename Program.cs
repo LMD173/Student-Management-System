@@ -19,7 +19,6 @@ class Program
             return;
         }
 
-
         DatabaseController db = null!;
         try
         {
@@ -45,10 +44,10 @@ class Program
     /// Tries to login the user. Returns the user if the login is successful, null otherwise (after 3 attempts).
     /// </summary>
     /// 
-    /// <param name="databaseManager"></param>
+    /// <param name="db">the database controller instance.</param>
     /// 
     /// <returns>The user object, or null.</returns>
-    private static User? TryLogin(DatabaseController databaseManager)
+    private static User? TryLogin(DatabaseController db)
     {
         Logger.Info("Before you begin, please login.");
         int attempts = 0;
@@ -59,7 +58,7 @@ class Program
             Logger.Input("Enter your password");
             string password = Console.ReadLine()!.Trim();
 
-            var user = databaseManager.GetUser(email, password);
+            var user = db.GetUser(email, password);
             if (user is null)
             {
                 attempts++;

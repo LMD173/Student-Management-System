@@ -67,6 +67,7 @@ public class UserController(User user, DatabaseController db) : IRunner
     /// <summary>
     /// Performs an admin action if the user is an admin.
     /// </summary>
+    /// 
     /// <param name="action">The action to perform (function to call)</param>
     private void PerformAdminAction(Action action)
     {
@@ -215,8 +216,12 @@ public class UserController(User user, DatabaseController db) : IRunner
     {
         Logger.Input("Enter the ID of the user to delete");
         int id = (int)Input.ReadInputGeneric<int>()!;
-        var deleted = db.DeleteUser(id);
-        if (deleted)
+        bool? deleted = db.DeleteUser(id);
+        if (deleted is null)
+        {
+            Logger.Error("Cannot delete the last admin user.");
+        }
+        else if (deleted == true)
         {
             Logger.Success("User deleted successfully.");
         }

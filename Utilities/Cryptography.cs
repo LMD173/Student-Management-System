@@ -29,8 +29,8 @@ public class Cryptography
     /// Verifies a password against a hashed password.
     /// </summary>
     /// 
-    /// <param name="userId">The user's salt to verify the hash.</param>
-    /// <param name="hashedPw">The hashed password.</param>
+    /// <param name="salt">The user's salt to verify the hash.</param>
+    /// <param name="hashedPw">The hashed password from the database.</param>
     /// <param name="pw">The plaintext password to verify.</param>
     /// 
     /// <returns>true if the password is correct, false otherwise.</returns>

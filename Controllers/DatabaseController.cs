@@ -17,6 +17,13 @@ public class DatabaseController
     /// </summary>
     private readonly string _databasePath;
 
+    /// <summary>
+    /// Creates a new instance of the DatabaseController.
+    /// </summary>
+    /// 
+    /// <param name="dbPath">The path to the database file ending in .sqlite, .db or .sqlite3.</param>
+    /// 
+    /// <exception cref="ArgumentException">Thrown when the database path is invalid.</exception>
     public DatabaseController(string dbPath)
     {
         string[] validDbExtensions = [".sqlite", ".db", ".sqlite3"];
@@ -413,11 +420,35 @@ public class DatabaseController
     /// 
     /// <param name="id">The user's id.</param>
     /// 
-    /// <returns>Whether the user was removed.</returns>
-    public bool DeleteUser(int id)
+    /// <returns>Whether the user was removed or null if they were the last admin user.</returns>
+    public bool? DeleteUser(int id)
     {
         using var connection = new SqliteConnection(_databasePath);
         connection.Open();
+
+        using var roleCommand = connection.CreateCommand();
+        roleCommand.CommandText = @"SELECT role FROM User where id = @id";
+        roleCommand.Parameters.AddWithValue("@id", id);
+
+        using var reader = roleCommand.ExecuteReader();
+        string role = "";
+        if (reader.Read())
+        {
+            role = reader.GetString(0);
+            reader.Close();
+        }
+
+        if (role == "admin")
+        {
+            using var countCommand = connection.CreateCommand();
+            countCommand.CommandText = @"SELECT COUNT(*) FROM User WHERE role = 'admin'";
+            var count = countCommand.ExecuteScalar();
+            if ((long)count! <= 1)
+            {
+                connection.Close();
+                return null;
+            }
+        }
 
         using var command = connection.CreateCommand();
         command.CommandText = @"DELETE FROM User WHERE id = @id";

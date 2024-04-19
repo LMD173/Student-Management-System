@@ -11,6 +11,6 @@ public class User(int id, string email, string role)
 
     override public string ToString()
     {
-        return $"{Email} ({Id}): {Email} ({Role})";
+        return $"[{Id}] {Email} - {Role}";
     }
 }

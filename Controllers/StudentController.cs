@@ -5,8 +5,9 @@ using StudentManagementSystem.Utilities;
 namespace StudentManagementSystem.Controllers;
 
 /// <summary>
-/// A student management wizard that allows users to view, update, add, and delete students depending on their role.
+/// A student management wizard that allows users to view, update, add, and delete students.
 /// </summary>
+/// 
 /// <param name="db">The database instance.</param>
 public class StudentController(User user, DatabaseController db) : IRunner
 {
@@ -49,13 +50,13 @@ public class StudentController(User user, DatabaseController db) : IRunner
                     SearchStudentByNameOrPostcodeChoice();
                     break;
                 case StudentControllerMenuOptions.AddStudent:
-                    PerformAdminAction(AddStudentChoice);
+                    AddStudentChoice();
                     break;
                 case StudentControllerMenuOptions.ModifyStudent:
-                    PerformAdminAction(ModifyStudentChoice);
+                    ModifyStudentChoice();
                     break;
                 case StudentControllerMenuOptions.DeleteStudent:
-                    PerformAdminAction(DeleteStudentChoice);
+                    DeleteStudentChoice();
                     break;
                 case StudentControllerMenuOptions.ManageUsers:
                     new UserController(user, db).Run();
@@ -71,26 +72,12 @@ public class StudentController(User user, DatabaseController db) : IRunner
         SayGoodbye();
     }
 
-    /// <summary>
-    /// Performs an admin action if the user is an admin.
-    /// </summary>
-    /// <param name="action">The action to perform (function to call)</param>
-    private void PerformAdminAction(Action action)
-    {
-        if (user.Role == "admin")
-            action();
-        else
-            Logger.LogInvalidChoice();
-    }
-
     public void Greet()
     {
         Console.Clear();
         Logger.Info("Hello! Welcome to Student Management System.");
         Logger.Info($"You are logged in as '{user.Email}'.\n");
         Logger.Info("This is an application to manage students.");
-        Logger.Info("Admin users have additional options for manipulating student data.");
-        Logger.Info("Regular users only have read access.");
         Logger.Info("Please select an option from the menu to start.");
     }
 
@@ -102,26 +89,16 @@ public class StudentController(User user, DatabaseController db) : IRunner
     public void DisplayMenu()
     {
         Logger.Log("\n-------- Student Menu --------");
+
         Logger.Log("1. View all students");
         Logger.Log("2. Search for a student by ID");
         Logger.Log("3. Search for a student by name or postcode");
-
-        if (user.Role == "admin")
-        {
-            Logger.Log("4. Add a new student");
-            Logger.Log("5. Modify a student's details");
-            Logger.Log("6. Delete a student");
-            Logger.Log("7. Manage users");
-        }
-        else
-        {
-            Logger.Log("4. Add a new student", ConsoleColor.DarkGray);
-            Logger.Log("5. Modify a student's details", ConsoleColor.DarkGray);
-            Logger.Log("6. Delete a student", ConsoleColor.DarkGray);
-            Logger.Log("7. Manage your account");
-        }
-
+        Logger.Log("4. Add a new student");
+        Logger.Log("5. Modify a student's details");
+        Logger.Log("6. Delete a student");
+        Logger.Log("7. Manage users");
         Logger.Log("8. Exit");
+
         Logger.Log("-------------------------------");
     }
 
@@ -162,7 +139,7 @@ public class StudentController(User user, DatabaseController db) : IRunner
     }
 
     /// <summary>
-    /// Asks the user for a student ID to then displays the student's details.
+    /// Asks the user for a student's ID to then displays the student's details.
     /// </summary>
     private void SearchStudentByIdChoice()
     {
@@ -182,7 +159,7 @@ public class StudentController(User user, DatabaseController db) : IRunner
     }
 
     /// <summary>
-    /// Gets user input to search for a student by name or postcode.
+    /// Gets user input to search for a student by name and/or postcode.
     /// </summary>
     private void SearchStudentByNameOrPostcodeChoice()
     {
